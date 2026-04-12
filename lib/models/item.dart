@@ -16,7 +16,8 @@ class Item {
   int get daysUsed {
     final now = DateTime.now();
     final difference = now.difference(purchaseDate);
-    return difference.inDays + 1;
+    final days = difference.inDays;
+    return days < 0 ? 0 : days + 1;
   }
 
   double get averagePricePerDay {
@@ -25,11 +26,19 @@ class Item {
   }
 
   String get formattedPrice {
-    return NumberFormat.currency(locale: 'zh_CN', symbol: '¥', decimalDigits: 2).format(price);
+    return NumberFormat.currency(
+      locale: 'zh_CN',
+      symbol: '¥',
+      decimalDigits: 2,
+    ).format(price);
   }
 
   String get formattedAveragePrice {
-    return NumberFormat.currency(locale: 'zh_CN', symbol: '¥', decimalDigits: 2).format(averagePricePerDay);
+    return NumberFormat.currency(
+      locale: 'zh_CN',
+      symbol: '¥',
+      decimalDigits: 2,
+    ).format(averagePricePerDay);
   }
 
   String get formattedPurchaseDate {
