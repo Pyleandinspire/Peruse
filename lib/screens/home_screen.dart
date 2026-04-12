@@ -53,9 +53,9 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _showFloatingMenu = false;
     });
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => ItemFormScreen(item: item)),
+    final result = await showDialog<Item>(
+      context: context,
+      builder: (context) => ItemFormDialog(item: item),
     );
     if (result != null) {
       if (item == null) {
