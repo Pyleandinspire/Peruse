@@ -62,81 +62,213 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const primaryColor = Color(0xFF2C5F8C);
+    const jadeGreen = Color(0xFF4CAF50);
+    const warmGold = Color(0xFFD4AF37);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.item == null ? '添加物品' : '编辑物品'),
+        title: Text(
+          widget.item == null ? '添加物品' : '编辑物品',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: primaryColor,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: Image.asset('res/close_button.png', width: 24, height: 24),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(24.0),
         child: Form(
           key: _formKey,
-          child: ListView(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: '商品名称',
-                  border: OutlineInputBorder(),
+              Expanded(
+                flex: 2,
+                child: ListView(
+                  children: [
+                    const SizedBox(height: 32),
+                    _buildTextField(
+                      controller: _nameController,
+                      label: '商品名称',
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return '请输入商品名称';
+                        }
+                        return null;
+                      },
+                      color: primaryColor,
+                    ),
+                    const SizedBox(height: 32),
+                    _buildTextField(
+                      controller: _priceController,
+                      label: '购买价格',
+                      prefix: '¥',
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return '请输入购买价格';
+                        }
+                        if (double.tryParse(value) == null) {
+                          return '请输入有效的数字';
+                        }
+                        if (double.parse(value) <= 0) {
+                          return '价格必须大于0';
+                        }
+                        return null;
+                      },
+                      color: primaryColor,
+                    ),
+                    const SizedBox(height: 32),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '购买日期',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                            color: primaryColor,
+                            height: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        InkWell(
+                          onTap: () => _selectDate(context),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(
+                                  color: jadeGreen,
+                                  width: 1.0,
+                                ),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  DateFormat(
+                                    'yyyy-MM-dd',
+                                  ).format(_selectedDate),
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: primaryColor,
+                                    height: 1.2,
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.calendar_today,
+                                  color: warmGold,
+                                  size: 20,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '请输入商品名称';
-                  }
-                  return null;
-                },
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _priceController,
-                decoration: const InputDecoration(
-                  labelText: '购买价格',
-                  border: OutlineInputBorder(),
-                  prefixText: '¥',
-                ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '请输入购买价格';
-                  }
-                  if (double.tryParse(value) == null) {
-                    return '请输入有效的数字';
-                  }
-                  if (double.parse(value) <= 0) {
-                    return '价格必须大于0';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              InkWell(
-                onTap: () => _selectDate(context),
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: '购买日期',
-                    border: OutlineInputBorder(),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              const SizedBox(width: 48),
+              Expanded(
+                flex: 1,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 32),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(DateFormat('yyyy-MM-dd').format(_selectedDate)),
-                      const Icon(Icons.calendar_today),
+                      InkWell(
+                        onTap: _submit,
+                        borderRadius: BorderRadius.circular(60),
+                        child: Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: primaryColor,
+                          ),
+                          child: Center(
+                            child: Image.asset(
+                              'res/add_button.png',
+                              width: 60,
+                              height: 60,
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _submit,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  textStyle: const TextStyle(fontSize: 18),
-                ),
-                child: Text(widget.item == null ? '添加' : '保存'),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    String? prefix,
+    TextInputType? keyboardType,
+    required String? Function(String?) validator,
+    required Color color,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+            color: color,
+            height: 1.2,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          validator: validator,
+          decoration: InputDecoration(
+            prefixText: prefix,
+            prefixStyle: TextStyle(fontSize: 18, color: color, height: 1.2),
+            border: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            errorBorder: InputBorder.none,
+            disabledBorder: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(vertical: 12),
+            suffixIcon: controller.text.isNotEmpty
+                ? IconButton(
+                    onPressed: () => controller.clear(),
+                    icon: Icon(
+                      Icons.clear,
+                      color: color.withValues(alpha: 0.5),
+                      size: 20,
+                    ),
+                  )
+                : null,
+          ),
+          style: TextStyle(fontSize: 18, color: color, height: 1.2),
+        ),
+        Container(height: 1, width: double.infinity, color: color),
+      ],
     );
   }
 }

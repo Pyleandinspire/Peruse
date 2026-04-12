@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import '../models/item.dart';
@@ -17,6 +18,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Item> _items = [];
   bool _isLoading = true;
   bool _isSelectionMode = false;
+  bool _showFloatingMenu = false;
   Set<String> _selectedItemIds = {};
 
   double get totalValue {
@@ -48,6 +50,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _navigateToForm([Item? item]) async {
+    setState(() {
+      _showFloatingMenu = false;
+    });
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => ItemFormScreen(item: item)),
@@ -151,6 +156,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _importFromFile() async {
+    setState(() {
+      _showFloatingMenu = false;
+    });
     if (!mounted) return;
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     try {
@@ -253,201 +261,449 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: _isSelectionMode
-          ? AppBar(
-              title: Text('已选择 ${_selectedItemIds.length} 个'),
-              leading: IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: _exitSelectionMode,
-              ),
-              actions: [
-                TextButton(
-                  onPressed: _selectAll,
-                  child: Text(
-                    _selectedItemIds.length == _items.length ? '取消全选' : '全选',
-                    style: const TextStyle(color: Colors.white),
+    return Stack(
+      children: [
+        Scaffold(
+          appBar: _isSelectionMode
+              ? AppBar(
+                  title: Text('已选择 ${_selectedItemIds.length} 个'),
+                  leading: IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: _exitSelectionMode,
                   ),
+                  actions: [
+                    TextButton(
+                      onPressed: _selectAll,
+                      child: Text(
+                        _selectedItemIds.length == _items.length
+                            ? '取消全选'
+                            : '全选',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete),
+                      onPressed: _batchDelete,
+                    ),
+                  ],
+                )
+              : AppBar(
+                  title: InkWell(
+                    onTap: _showUsageGuide,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      child: Image.asset(
+                        'res/peruse_upper_button.png',
+                        height: 40,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Text(
+                            '长物',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.delete_sweep),
+                      onPressed: _enterSelectionMode,
+                      tooltip: '批量删除',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.download),
+                      onPressed: _exportToFile,
+                      tooltip: '导出到文件',
+                    ),
+                  ],
                 ),
-                IconButton(
-                  icon: const Icon(Icons.delete),
-                  onPressed: _batchDelete,
+          body: Column(
+            children: [
+              if (_items.isNotEmpty) _buildSummaryCard(),
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _items.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.inbox,
+                              size: 80,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              '还没有添加物品',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(8),
+                        itemCount: _items.length,
+                        itemBuilder: (context, index) {
+                          final item = _items[index];
+                          final isSelected = _selectedItemIds.contains(item.id);
+                          return _buildItemCard(item, isSelected);
+                        },
+                      ),
+              ),
+            ],
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () {
+              setState(() {
+                _showFloatingMenu = true;
+              });
+            },
+            child: const Icon(Icons.add),
+          ),
+        ),
+        if (_showFloatingMenu)
+          AnimatedOpacity(
+            opacity: 1.0,
+            duration: const Duration(milliseconds: 300),
+            child: _buildFloatingMenu(),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildFloatingMenu() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final maxButtonWidth = screenWidth * 0.35;
+    final buttonSize = min(180.0, maxButtonWidth);
+    final spacing = screenWidth < 500 ? 24.0 : 48.0;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _showFloatingMenu = false;
+        });
+      },
+      child: Container(
+        color: Colors.black.withValues(alpha: 0.35),
+        child: Center(
+          child: GestureDetector(
+            onTap: () {
+              // 阻止事件冒泡
+            },
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                margin: const EdgeInsets.all(24),
+                constraints: BoxConstraints(
+                  minWidth: 320,
+                  maxWidth: MediaQuery.of(context).size.width * 0.85,
+                  maxHeight: MediaQuery.of(context).size.height * 0.7,
                 ),
-              ],
-            )
-          : AppBar(
-              title: TextButton(
-                onPressed: _showUsageGuide,
-                child: const Text(
-                  '长物',
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 20,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '选择操作',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'CHOOSE OPERATION',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[500],
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Flexible(
+                            flex: 1,
+                            child: _buildMenuButton(
+                              'res/new_item_button.png',
+                              '添加物品',
+                              'ADD ITEM',
+                              _navigateToForm,
+                              buttonSize,
+                            ),
+                          ),
+                          SizedBox(width: spacing),
+                          Flexible(
+                            flex: 1,
+                            child: _buildMenuButton(
+                              'res/import_from_file_button.png',
+                              '从文件导入',
+                              'IMPORT FILE',
+                              _importFromFile,
+                              buttonSize,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenuButton(
+    String imagePath,
+    String title,
+    String subtitle,
+    VoidCallback onTap,
+    double buttonSize,
+  ) {
+    final primaryColor = Color(0xFF2C5F8C);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final actualSize = min(buttonSize, constraints.maxWidth - 10);
+        final iconSize = actualSize * 0.3;
+        final titleFontSize = actualSize * 0.08;
+        final subtitleFontSize = actualSize * 0.06;
+
+        return InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(100),
+          child: Container(
+            width: actualSize,
+            height: actualSize,
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Color(0xFFD4AF37).withValues(alpha: 0.5),
+                width: 1.5,
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  imagePath,
+                  width: iconSize,
+                  height: iconSize,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Icon(
+                      Icons.add_circle_outline,
+                      size: iconSize,
+                      color: primaryColor,
+                    );
+                  },
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  title,
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: titleFontSize,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                    color: primaryColor,
                   ),
                 ),
-              ),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.delete_sweep),
-                  onPressed: _enterSelectionMode,
-                  tooltip: '批量删除',
-                ),
-                IconButton(
-                  icon: const Icon(Icons.download),
-                  onPressed: _exportToFile,
-                  tooltip: '导出到文件',
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: subtitleFontSize,
+                    color: Colors.grey[500],
+                    letterSpacing: 1,
+                  ),
                 ),
               ],
             ),
-      body: Column(
-        children: [
-          if (_items.isNotEmpty) _buildSummaryCard(),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _items.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildItemCard(Item item, bool isSelected) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: isSelected
+            ? Border.all(color: Theme.of(context).primaryColor, width: 2)
+            : null,
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: _isSelectionMode ? () => _toggleItemSelection(item.id) : null,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  if (_isSelectionMode)
+                    Container(
+                      margin: const EdgeInsets.only(right: 12),
+                      child: Checkbox(
+                        value: isSelected,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        onChanged: (value) {
+                          _toggleItemSelection(item.id);
+                        },
+                      ),
+                    ),
+                  Expanded(
+                    child: Text(
+                      item.name,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: isSelected
+                            ? Theme.of(context).primaryColor
+                            : const Color(0xFF1A1A1A),
+                      ),
+                    ),
+                  ),
+                  if (!_isSelectionMode)
+                    Row(
                       children: [
-                        Icon(Icons.inbox, size: 80, color: Colors.grey[400]),
-                        const SizedBox(height: 16),
-                        Text(
-                          '还没有添加物品',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.grey[600],
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).primaryColor.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            icon: Icon(
+                              Icons.edit,
+                              size: 20,
+                              color: Theme.of(context).primaryColor,
+                            ),
+                            onPressed: () => _navigateToForm(item),
+                            padding: const EdgeInsets.all(8),
+                            constraints: const BoxConstraints(),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.red.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              size: 20,
+                              color: Colors.red,
+                            ),
+                            onPressed: () => _deleteItem(item.id),
+                            padding: const EdgeInsets.all(8),
+                            constraints: const BoxConstraints(),
                           ),
                         ),
                       ],
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(8),
-                    itemCount: _items.length,
-                    itemBuilder: (context, index) {
-                      final item = _items[index];
-                      final isSelected = _selectedItemIds.contains(item.id);
-                      return Card(
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        child: InkWell(
-                          onTap: _isSelectionMode
-                              ? () => _toggleItemSelection(item.id)
-                              : null,
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    if (_isSelectionMode)
-                                      Checkbox(
-                                        value: isSelected,
-                                        onChanged: (value) {
-                                          _toggleItemSelection(item.id);
-                                        },
-                                      ),
-                                    Expanded(
-                                      child: Text(
-                                        item.name,
-                                        style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: isSelected
-                                              ? Theme.of(context).primaryColor
-                                              : null,
-                                        ),
-                                      ),
-                                    ),
-                                    if (!_isSelectionMode)
-                                      Row(
-                                        children: [
-                                          IconButton(
-                                            icon: const Icon(Icons.edit),
-                                            onPressed: () =>
-                                                _navigateToForm(item),
-                                          ),
-                                          IconButton(
-                                            icon: const Icon(Icons.delete),
-                                            color: Colors.red,
-                                            onPressed: () =>
-                                                _deleteItem(item.id),
-                                          ),
-                                        ],
-                                      ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                _buildInfoRow('购买价格', item.formattedPrice),
-                                _buildInfoRow(
-                                  '购买日期',
-                                  item.formattedPurchaseDate,
-                                ),
-                                _buildInfoRow('使用天数', '${item.daysUsed} 天'),
-                                const Divider(height: 24),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    const Text(
-                                      '平均每日成本',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    Text(
-                                      item.formattedAveragePrice,
-                                      style: TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                        color: Theme.of(context).primaryColor,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildInfoRow('购买价格', item.formattedPrice),
+              _buildInfoRow('购买日期', item.formattedPurchaseDate),
+              _buildInfoRow('使用天数', '${item.daysUsed} 天'),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Divider(height: 1, color: Colors.grey[200]),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.calculate, size: 16, color: Colors.grey[500]),
+                      const SizedBox(width: 6),
+                      Text(
+                        '平均每日成本',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey[700],
                         ),
-                      );
-                    },
+                      ),
+                    ],
                   ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).primaryColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      item.formattedAveragePrice,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            builder: (context) => Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.add),
-                  title: const Text('添加物品'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _navigateToForm();
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.upload),
-                  title: const Text('从文件导入'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _importFromFile();
-                  },
-                ),
-              ],
-            ),
-          );
-        },
-        child: const Icon(Icons.add),
+        ),
       ),
     );
   }
@@ -510,50 +766,115 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildSummaryCard() {
-    return Card(
-      margin: const EdgeInsets.all(8),
-      color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: [
+            Theme.of(context).primaryColor.withValues(alpha: 0.15),
+            Theme.of(context).primaryColor.withValues(alpha: 0.08),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Row(
           children: [
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '总价值',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.monetization_on,
+                        size: 18,
+                        color: Theme.of(
+                          context,
+                        ).primaryColor.withValues(alpha: 0.8),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '总价值',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 8),
                   Text(
                     '¥${totalValue.toStringAsFixed(2)}',
                     style: TextStyle(
-                      fontSize: 24,
+                      fontSize: 28,
                       fontWeight: FontWeight.bold,
                       color: Theme.of(context).primaryColor,
+                      letterSpacing: -0.5,
                     ),
                   ),
                 ],
               ),
             ),
-            Container(width: 1, height: 50, color: Colors.grey[300]),
-            const SizedBox(width: 16),
+            Container(
+              width: 1.5,
+              height: 60,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.transparent,
+                    Theme.of(context).primaryColor.withValues(alpha: 0.3),
+                    Colors.transparent,
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+            const SizedBox(width: 20),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '平均每日开销',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.trending_down,
+                        size: 18,
+                        color: Theme.of(
+                          context,
+                        ).primaryColor.withValues(alpha: 0.8),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '平均每日开销',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 8),
                   Text(
                     '¥${averageDailyCost.toStringAsFixed(2)}',
                     style: TextStyle(
-                      fontSize: 24,
+                      fontSize: 28,
                       fontWeight: FontWeight.bold,
                       color: Theme.of(context).primaryColor,
+                      letterSpacing: -0.5,
                     ),
                   ),
                 ],
@@ -567,14 +888,32 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
           Text(
-            value,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1A1A1A),
+              ),
+            ),
           ),
         ],
       ),
