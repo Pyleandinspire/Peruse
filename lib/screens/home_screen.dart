@@ -173,26 +173,52 @@ class _HomeScreenState extends State<HomeScreen> {
         allowedExtensions: ['txt'],
         withData: true, // Web平台需要这个
       );
-      if (result == null || result.files.isEmpty) return;
+      if (result == null || result.files.isEmpty) {
+        return;
+      }
 
       String content;
-      if (kIsWeb) {
-        // Web平台：使用bytes
-        content = utf8.decode(result.files.single.bytes!);
-      } else {
-        // 其他平台：使用path
-        final file = File(result.files.single.path!);
-        content = await file.readAsString();
+      try {
+        if (kIsWeb) {
+          // Web平台：使用bytes
+          if (result.files.single.bytes == null) {
+            throw Exception('文件内容为空');
+          }
+          content = utf8.decode(result.files.single.bytes!);
+        } else {
+          // 其他平台：使用path
+          if (result.files.single.path == null) {
+            throw Exception('文件路径为空');
+          }
+          final file = File(result.files.single.path!);
+          if (!await file.exists()) {
+            throw Exception('文件不存在');
+          }
+          content = await file.readAsString();
+        }
+      } catch (fileError) {
+        if (mounted) {
+          scaffoldMessenger.showSnackBar(
+            SnackBar(content: Text('文件读取失败: $fileError')),
+          );
+        }
+        return;
       }
 
       final lines = content.split('\n');
-
       int importedCount = 0;
+      int failedCount = 0;
+
       for (final line in lines) {
         if (line.trim().isEmpty) continue;
 
-        final parts = line.split('|').map((p) => p.trim()).toList();
-        if (parts.length >= 3) {
+        try {
+          final parts = line.split('|').map((p) => p.trim()).toList();
+          if (parts.length < 3) {
+            failedCount++;
+            continue;
+          }
+
           final name = parts[0];
           final priceStr = parts[1];
           final dateStr = parts[2];
@@ -200,31 +226,48 @@ class _HomeScreenState extends State<HomeScreen> {
           final price = double.tryParse(priceStr);
           final date = DateTime.tryParse(dateStr);
 
-          if (price != null && date != null) {
-            final item = Item(
-              id:
-                  DateTime.now().millisecondsSinceEpoch.toString() +
-                  importedCount.toString(),
-              name: name,
-              price: price,
-              purchaseDate: date,
-            );
-            await _storageService.addItem(item);
-            importedCount++;
+          if (price == null || date == null) {
+            failedCount++;
+            continue;
           }
+
+          final item = Item(
+            id:
+                DateTime.now().millisecondsSinceEpoch.toString() +
+                importedCount.toString(),
+            name: name,
+            price: price,
+            purchaseDate: date,
+          );
+          await _storageService.addItem(item);
+          importedCount++;
+        } catch (parseError) {
+          failedCount++;
+          debugPrint('解析行失败: $line, 错误: $parseError');
         }
       }
 
       await _loadItems();
       if (mounted) {
-        scaffoldMessenger.showSnackBar(
-          SnackBar(content: Text('成功导入 $importedCount 个物品')),
-        );
+        if (importedCount > 0) {
+          String message = '成功导入 $importedCount 个物品';
+          if (failedCount > 0) {
+            message += ', 失败 $failedCount 个物品';
+          }
+          scaffoldMessenger.showSnackBar(SnackBar(content: Text(message)));
+        } else {
+          scaffoldMessenger.showSnackBar(
+            const SnackBar(content: Text('没有成功导入任何物品，请检查文件格式')),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
-        scaffoldMessenger.showSnackBar(SnackBar(content: Text('导入失败: $e')));
+        scaffoldMessenger.showSnackBar(
+          SnackBar(content: Text('导入失败: ${e.toString()}')),
+        );
       }
+      debugPrint('导入文件时发生错误: $e');
     }
   }
 
@@ -243,9 +286,19 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       String content = '';
-      for (final item in items) {
-        content +=
-            '${item.name}|${item.price}|${item.purchaseDate.toIso8601String()}\n';
+      try {
+        for (final item in items) {
+          content +=
+              '${item.name}|${item.price}|${item.purchaseDate.toIso8601String()}\n';
+        }
+      } catch (formatError) {
+        if (mounted) {
+          scaffoldMessenger.showSnackBar(
+            SnackBar(content: Text('数据格式化失败: $formatError')),
+          );
+        }
+        debugPrint('数据格式化错误: $formatError');
+        return;
       }
 
       final result = await FilePicker.platform.saveFile(
@@ -256,21 +309,42 @@ class _HomeScreenState extends State<HomeScreen> {
         bytes: utf8.encode(content), // Web平台使用bytes
       );
 
-      if (result == null) return;
+      if (result == null) {
+        // 用户取消了保存操作
+        return;
+      }
 
       // 根据平台保存文件
       if (!kIsWeb) {
-        final file = File(result);
-        await file.writeAsString(content);
+        try {
+          final file = File(result);
+          // 确保目录存在
+          final directory = file.parent;
+          if (!await directory.exists()) {
+            await directory.create(recursive: true);
+          }
+          await file.writeAsString(content);
+        } catch (fileError) {
+          if (mounted) {
+            scaffoldMessenger.showSnackBar(
+              SnackBar(content: Text('文件保存失败: $fileError')),
+            );
+          }
+          debugPrint('文件保存错误: $fileError');
+          return;
+        }
       }
 
       if (mounted) {
-        scaffoldMessenger.showSnackBar(SnackBar(content: Text('导出成功')));
+        scaffoldMessenger.showSnackBar(const SnackBar(content: Text('导出成功')));
       }
     } catch (e) {
       if (mounted) {
-        scaffoldMessenger.showSnackBar(SnackBar(content: Text('导出失败: $e')));
+        scaffoldMessenger.showSnackBar(
+          SnackBar(content: Text('导出失败: ${e.toString()}')),
+        );
       }
+      debugPrint('导出文件时发生错误: $e');
     }
   }
 
@@ -289,7 +363,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     icon: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
+                        color: Colors.white.withAlpha(25),
+
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(Icons.close),
@@ -502,7 +577,8 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       },
       child: Container(
-        color: Colors.black.withValues(alpha: 0.35),
+        color: Colors.black.withAlpha(89),
+
         child: Center(
           child: GestureDetector(
             onTap: () {
@@ -526,7 +602,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
+                      color: Colors.black.withAlpha(25),
+
                       blurRadius: 30,
                       offset: const Offset(0, 15),
                     ),
@@ -615,10 +692,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(
-                color: warmGold.withValues(alpha: 0.5),
-                width: 1.5,
-              ),
+              border: Border.all(color: warmGold.withAlpha(128), width: 1.5),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
