@@ -362,12 +362,25 @@ class _HomeScreenState extends State<HomeScreen> {
                           fit: BoxFit.contain,
                         ),
                         const SizedBox(width: 8),
-                        Text(
-                          '长物 / PERUSE',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: primaryColor,
+                        InkWell(
+                          onTap: _showUsageGuide,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            child: Tooltip(
+                              message: '使用说明',
+                              child: Text(
+                                '长物 / PERUSE',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: primaryColor,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -726,42 +739,125 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showUsageGuide() {
-    showDialog(
+    showGeneralDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.info, color: Theme.of(context).primaryColor),
-            const SizedBox(width: 12),
-            const Text('使用说明'),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildGuideSection('📝 添加物品', '点击右下角的添加按钮，输入物品名称、购买价格和购买日期。'),
-              const SizedBox(height: 16),
-              _buildGuideSection('💰 价值计算', '系统会自动计算每个物品的平均每日成本，让你了解物品的使用价值。'),
-              const SizedBox(height: 16),
-              _buildGuideSection('📊 统计信息', '顶部显示总价值和平均每日开销，帮助你掌握整体消费情况。'),
-              const SizedBox(height: 16),
-              _buildGuideSection('✏️ 编辑与删除', '点击卡片上的编辑图标修改物品，点击删除图标移除物品。'),
-              const SizedBox(height: 16),
-              _buildGuideSection('📤 导入导出', '支持从文件导入物品数据，也可以将数据导出备份。'),
-              const SizedBox(height: 16),
-              _buildGuideSection('🗑️ 批量删除', '点击右上角的批量删除图标，选择多个物品一次性删除。'),
-            ],
+      barrierDismissible: true,
+      barrierLabel: '关闭',
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Center(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 24),
+            constraints: BoxConstraints(
+              maxWidth: 500,
+              maxHeight: MediaQuery.of(context).size.height * 0.8,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(50),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: Colors.grey[200]!, width: 1),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info, color: primaryColor),
+                        const SizedBox(width: 12),
+                        const Text(
+                          '使用说明',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildGuideSection(
+                            '本软件是免费，并且将所有的数据和使用记录都保存在本地',
+                            '本应用用于记录长期消费，帮助你了解物品的使用价值和消费趋势。点击右下角的添加按钮，输入物品名称、购买价格和购买日期。系统会自动计算每个物品的平均每日成本，让你了解物品的使用价值。顶部显示总价值和平均每日开销，帮助你掌握整体消费情况。',
+                          ),
+                          const SizedBox(height: 16),
+                          _buildGuideSection(
+                            '📝 添加物品',
+                            '点击右下角的添加按钮，输入物品名称、购买价格和购买日期。',
+                          ),
+                          const SizedBox(height: 16),
+                          _buildGuideSection(
+                            '💰 价值计算',
+                            '系统会自动计算每个物品的平均每日成本，让你了解物品的使用价值。',
+                          ),
+                          const SizedBox(height: 16),
+                          _buildGuideSection(
+                            '📊 统计信息',
+                            '顶部显示总价值和平均每日开销，帮助你掌握整体消费情况。',
+                          ),
+                          const SizedBox(height: 16),
+                          _buildGuideSection(
+                            '✏️ 编辑与删除',
+                            '点击卡片上的编辑图标修改物品，点击删除图标移除物品。',
+                          ),
+                          const SizedBox(height: 16),
+                          _buildGuideSection(
+                            '📤 导入导出',
+                            '支持从文件导入物品数据，也可以将数据导出备份。',
+                          ),
+                          const SizedBox(height: 16),
+                          _buildGuideSection(
+                            '🗑️ 批量删除',
+                            '点击右上角的批量删除图标，选择多个物品一次性删除。',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: BorderSide(color: Colors.grey[200]!, width: 1),
+                      ),
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: TextButton.styleFrom(
+                          foregroundColor: primaryColor,
+                        ),
+                        child: const Text('关闭'),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('关闭'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
