@@ -27,17 +27,39 @@ class _HomeScreenState extends State<HomeScreen> {
   static const warmGold = Color(0xFFCFAF68);
   static const cardColor = Color(0xFFFFFFFF);
 
+  // 缓存计算结果，避免重复计算
+  double? _cachedTotalValue;
+  double? _cachedAverageDailyCost;
+
   double get totalValue {
-    return _items.fold<double>(0, (sum, item) => sum + item.price);
+    if (_cachedTotalValue == null) {
+      _cachedTotalValue = _items.fold<double>(
+        0,
+        (sum, item) => sum + item.price,
+      );
+    }
+    return _cachedTotalValue!;
   }
 
   double get averageDailyCost {
-    if (_items.isEmpty) return 0;
-    final totalDailyCost = _items.fold<double>(
-      0,
-      (sum, item) => sum + item.averagePricePerDay,
-    );
-    return totalDailyCost / _items.length;
+    if (_cachedAverageDailyCost == null) {
+      if (_items.isEmpty) {
+        _cachedAverageDailyCost = 0;
+      } else {
+        final totalDailyCost = _items.fold<double>(
+          0,
+          (sum, item) => sum + item.averagePricePerDay,
+        );
+        _cachedAverageDailyCost = totalDailyCost / _items.length;
+      }
+    }
+    return _cachedAverageDailyCost!;
+  }
+
+  // 重置缓存
+  void _resetCalculationCache() {
+    _cachedTotalValue = null;
+    _cachedAverageDailyCost = null;
   }
 
   @override
@@ -52,6 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _items = items;
       _isLoading = false;
+      _resetCalculationCache(); // 重置计算缓存
     });
   }
 
@@ -153,9 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (confirm == true) {
-      for (final itemId in _selectedItemIds) {
-        await _storageService.deleteItem(itemId);
-      }
+      await _storageService.deleteItems(_selectedItemIds.toList());
       await _loadItems();
       _exitSelectionMode();
     }
@@ -208,6 +229,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final lines = content.split('\n');
       int importedCount = 0;
       int failedCount = 0;
+      final List<Item> importedItems = [];
 
       for (final line in lines) {
         if (line.trim().isEmpty) continue;
@@ -239,12 +261,16 @@ class _HomeScreenState extends State<HomeScreen> {
             price: price,
             purchaseDate: date,
           );
-          await _storageService.addItem(item);
+          importedItems.add(item);
           importedCount++;
         } catch (parseError) {
           failedCount++;
           debugPrint('解析行失败: $line, 错误: $parseError');
         }
+      }
+
+      if (importedItems.isNotEmpty) {
+        await _storageService.addItems(importedItems);
       }
 
       await _loadItems();
@@ -353,206 +379,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Stack(
       children: [
         Scaffold(
-          appBar: _isSelectionMode
-              ? AppBar(
-                  title: Text(
-                    '已选择 ${_selectedItemIds.length} 个',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  leading: IconButton(
-                    icon: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withAlpha(25),
-
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.close),
-                    ),
-                    onPressed: _exitSelectionMode,
-                    tooltip: '退出选择模式',
-                  ),
-                  actions: [
-                    Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      child: ElevatedButton.icon(
-                        onPressed: _selectAll,
-                        style: ElevatedButton.styleFrom(
-                          foregroundColor: primaryColor,
-                          backgroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          elevation: 0,
-                        ),
-                        icon: Icon(
-                          _selectedItemIds.length == _items.length
-                              ? Icons.deselect
-                              : Icons.select_all,
-                          size: 20,
-                        ),
-                        label: Text(
-                          _selectedItemIds.length == _items.length
-                              ? '取消全选'
-                              : '全选',
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ),
-                    Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      child: ElevatedButton.icon(
-                        onPressed: _selectedItemIds.isNotEmpty
-                            ? _batchDelete
-                            : null,
-                        style: ElevatedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          backgroundColor: _selectedItemIds.isNotEmpty
-                              ? Colors.red
-                              : Colors.grey[400],
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          elevation: 0,
-                          disabledBackgroundColor: Colors.grey[400],
-                          disabledForegroundColor: Colors.white,
-                        ),
-                        icon: const Icon(Icons.delete_outline, size: 20),
-                        label: const Text(
-                          '删除',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                )
-              : AppBar(
-                  backgroundColor: Colors.white,
-                  elevation: 0,
-                  leading: Padding(
-                    padding: const EdgeInsets.only(left: 16),
-                    child: Row(
-                      children: [
-                        Image.asset(
-                          'res/icon.png',
-                          height: 32,
-                          fit: BoxFit.contain,
-                        ),
-                        const SizedBox(width: 8),
-                        InkWell(
-                          onTap: _showUsageGuide,
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            child: Tooltip(
-                              message: '使用说明',
-                              child: Text(
-                                '长物 / PERUSE',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: primaryColor,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  leadingWidth: 200,
-                  actions: [
-                    IconButton(
-                      icon: const Icon(Icons.delete_sweep),
-                      onPressed: _enterSelectionMode,
-                      tooltip: '批量删除',
-                      color: primaryColor,
-                    ),
-                    Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      child: ElevatedButton.icon(
-                        onPressed: _exportToFile,
-                        style: ElevatedButton.styleFrom(
-                          foregroundColor: primaryColor,
-                          backgroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          elevation: 0,
-                        ),
-                        icon: const Icon(Icons.upload_file, size: 20),
-                        label: const Text(
-                          '导出',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                ),
-          body: Column(
-            children: [
-              if (_items.isNotEmpty) _buildSummaryCard(),
-              Expanded(
-                child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _items.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.inbox,
-                              size: 80,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              '还没有添加物品',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(8),
-                        itemCount: _items.length,
-                        itemBuilder: (context, index) {
-                          final item = _items[index];
-                          final isSelected = _selectedItemIds.contains(item.id);
-                          return _buildItemCard(item, isSelected);
-                        },
-                      ),
-              ),
-            ],
-          ),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () {
-              setState(() {
-                _showFloatingMenu = true;
-              });
-            },
-            child: const Icon(Icons.add),
-          ),
+          appBar: _buildAppBar(),
+          body: _buildBody(),
+          floatingActionButton: _buildFloatingActionButton(),
         ),
         if (_showFloatingMenu)
           AnimatedOpacity(
@@ -561,6 +390,229 @@ class _HomeScreenState extends State<HomeScreen> {
             child: _buildFloatingMenu(),
           ),
       ],
+    );
+  }
+
+  /// 构建应用栏
+  PreferredSizeWidget _buildAppBar() {
+    return _isSelectionMode
+        ? _buildSelectionModeAppBar()
+        : _buildNormalModeAppBar();
+  }
+
+  /// 构建选择模式下的应用栏
+  AppBar _buildSelectionModeAppBar() {
+    return AppBar(
+      title: Text(
+        '已选择 ${_selectedItemIds.length} 个',
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+      leading: IconButton(
+        icon: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: Colors.white.withAlpha(25),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.close),
+        ),
+        onPressed: _exitSelectionMode,
+        tooltip: '退出选择模式',
+      ),
+      actions: [
+        _buildSelectAllButton(),
+        _buildBatchDeleteButton(),
+        const SizedBox(width: 8),
+      ],
+    );
+  }
+
+  /// 构建正常模式下的应用栏
+  AppBar _buildNormalModeAppBar() {
+    return AppBar(
+      backgroundColor: Colors.white,
+      elevation: 0,
+      leading: Padding(
+        padding: const EdgeInsets.only(left: 16),
+        child: Row(
+          children: [
+            Image.asset('res/icon.png', height: 32, fit: BoxFit.contain),
+            const SizedBox(width: 8),
+            _buildAppTitle(),
+          ],
+        ),
+      ),
+      leadingWidth: 200,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.delete_sweep),
+          onPressed: _enterSelectionMode,
+          tooltip: '批量删除',
+          color: primaryColor,
+        ),
+        _buildExportButton(),
+        const SizedBox(width: 8),
+      ],
+    );
+  }
+
+  /// 构建应用标题
+  Widget _buildAppTitle() {
+    return InkWell(
+      onTap: _showUsageGuide,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Tooltip(
+          message: '使用说明',
+          child: Text(
+            '长物 / PERUSE',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: primaryColor,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 构建全选按钮
+  Widget _buildSelectAllButton() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      child: ElevatedButton.icon(
+        onPressed: _selectAll,
+        style: ElevatedButton.styleFrom(
+          foregroundColor: primaryColor,
+          backgroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          elevation: 0,
+        ),
+        icon: Icon(
+          _selectedItemIds.length == _items.length
+              ? Icons.deselect
+              : Icons.select_all,
+          size: 20,
+        ),
+        label: Text(
+          _selectedItemIds.length == _items.length ? '取消全选' : '全选',
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+      ),
+    );
+  }
+
+  /// 构建批量删除按钮
+  Widget _buildBatchDeleteButton() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      child: ElevatedButton.icon(
+        onPressed: _selectedItemIds.isNotEmpty ? _batchDelete : null,
+        style: ElevatedButton.styleFrom(
+          foregroundColor: Colors.white,
+          backgroundColor: _selectedItemIds.isNotEmpty
+              ? Colors.red
+              : Colors.grey[400],
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          elevation: 0,
+          disabledBackgroundColor: Colors.grey[400],
+          disabledForegroundColor: Colors.white,
+        ),
+        icon: const Icon(Icons.delete_outline, size: 20),
+        label: const Text('删除', style: TextStyle(fontWeight: FontWeight.w600)),
+      ),
+    );
+  }
+
+  /// 构建导出按钮
+  Widget _buildExportButton() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      child: ElevatedButton.icon(
+        onPressed: _exportToFile,
+        style: ElevatedButton.styleFrom(
+          foregroundColor: primaryColor,
+          backgroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          elevation: 0,
+        ),
+        icon: const Icon(Icons.upload_file, size: 20),
+        label: const Text('导出', style: TextStyle(fontWeight: FontWeight.w600)),
+      ),
+    );
+  }
+
+  /// 构建应用主体
+  Widget _buildBody() {
+    return Column(
+      children: [
+        if (_items.isNotEmpty) _buildSummaryCard(),
+        Expanded(child: _buildContent()),
+      ],
+    );
+  }
+
+  /// 构建内容区域
+  Widget _buildContent() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_items.isEmpty) {
+      return _buildEmptyState();
+    }
+    return _buildItemList();
+  }
+
+  /// 构建空状态
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.inbox, size: 80, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text(
+            '还没有添加物品',
+            style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建物品列表
+  Widget _buildItemList() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(8),
+      itemCount: _items.length,
+      itemBuilder: (context, index) {
+        final item = _items[index];
+        final isSelected = _selectedItemIds.contains(item.id);
+        return _buildItemCard(item, isSelected);
+      },
+    );
+  }
+
+  /// 构建浮动操作按钮
+  Widget _buildFloatingActionButton() {
+    return FloatingActionButton(
+      onPressed: () {
+        setState(() {
+          _showFloatingMenu = true;
+        });
+      },
+      child: const Icon(Icons.add),
     );
   }
 
@@ -1076,28 +1128,27 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // 预定义样式，减少重复创建
+  static const _labelTextStyle = TextStyle(
+    fontSize: 14,
+    color: Color(0xFF757575), // 使用具体颜色值，避免每次都计算Colors.grey[600]
+    fontWeight: FontWeight.w500,
+  );
+
+  static const _valueTextStyle = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    color: warmGold,
+  );
+
   Widget _buildInfoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: warmGold,
-            ),
-          ),
+          Text(label, style: _labelTextStyle),
+          Text(value, style: _valueTextStyle),
         ],
       ),
     );

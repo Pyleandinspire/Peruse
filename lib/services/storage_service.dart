@@ -103,6 +103,15 @@ class StorageService {
     await saveItems(newItems);
   }
 
+  /// 批量添加物品
+  /// 
+  /// [items]: 要添加的物品列表
+  Future<void> addItems(List<Item> items) async {
+    final existingItems = await getItems();
+    final newItems = List<Item>.from(existingItems)..addAll(items);
+    await saveItems(newItems);
+  }
+
   /// 更新物品
   /// 
   /// [item]: 要更新的物品
@@ -126,10 +135,27 @@ class StorageService {
     await saveItems(newItems);
   }
 
+  /// 批量删除物品
+  /// 
+  /// [itemIds]: 要删除的物品ID列表
+  Future<void> deleteItems(List<String> itemIds) async {
+    final items = await getItems();
+    final newItems = List<Item>.from(items)
+      ..removeWhere((item) => itemIds.contains(item.id));
+    await saveItems(newItems);
+  }
+
   /// 清除缓存
   /// 
   /// 清除当前缓存的物品列表
   Future<void> clearCache() async {
     _cachedItems = null;
+  }
+
+  /// 预加载物品数据
+  /// 
+  /// 在应用启动时调用，提前加载物品数据到缓存
+  Future<void> preloadItems() async {
+    await getItems(forceRefresh: true);
   }
 }
