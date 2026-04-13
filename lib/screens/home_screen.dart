@@ -270,64 +270,124 @@ class _HomeScreenState extends State<HomeScreen> {
         Scaffold(
           appBar: _isSelectionMode
               ? AppBar(
-                  title: Text('已选择 ${_selectedItemIds.length} 个'),
+                  title: Text(
+                    '已选择 ${_selectedItemIds.length} 个',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
                   leading: IconButton(
-                    icon: const Icon(Icons.close),
+                    icon: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.close),
+                    ),
                     onPressed: _exitSelectionMode,
+                    tooltip: '退出选择模式',
                   ),
                   actions: [
-                    TextButton(
-                      onPressed: _selectAll,
-                      child: Text(
-                        _selectedItemIds.length == _items.length
-                            ? '取消全选'
-                            : '全选',
-                        style: const TextStyle(color: Colors.white),
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      child: ElevatedButton.icon(
+                        onPressed: _selectAll,
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: primaryColor,
+                          backgroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          elevation: 0,
+                        ),
+                        icon: Icon(
+                          _selectedItemIds.length == _items.length
+                              ? Icons.deselect
+                              : Icons.select_all,
+                          size: 20,
+                        ),
+                        label: Text(
+                          _selectedItemIds.length == _items.length
+                              ? '取消全选'
+                              : '全选',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.delete),
-                      onPressed: _batchDelete,
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      child: ElevatedButton.icon(
+                        onPressed: _selectedItemIds.isNotEmpty
+                            ? _batchDelete
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: _selectedItemIds.isNotEmpty
+                              ? Colors.red
+                              : Colors.grey[400],
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          elevation: 0,
+                          disabledBackgroundColor: Colors.grey[400],
+                          disabledForegroundColor: Colors.white,
+                        ),
+                        icon: const Icon(Icons.delete_outline, size: 20),
+                        label: const Text(
+                          '删除',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
                     ),
+                    const SizedBox(width: 8),
                   ],
                 )
               : AppBar(
-                  title: InkWell(
-                    onTap: _showUsageGuide,
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      child: Image.asset(
-                        'res/peruse_upper_button.png',
-                        height: 40,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Text(
-                            '长物',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          );
-                        },
-                      ),
+                  backgroundColor: Colors.white,
+                  elevation: 0,
+                  leading: Padding(
+                    padding: const EdgeInsets.only(left: 16),
+                    child: Row(
+                      children: [
+                        Image.asset(
+                          'res/icon.png',
+                          height: 32,
+                          fit: BoxFit.contain,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '长物 / PERUSE',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: primaryColor,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                  leadingWidth: 200,
                   actions: [
                     IconButton(
                       icon: const Icon(Icons.delete_sweep),
                       onPressed: _enterSelectionMode,
                       tooltip: '批量删除',
+                      color: primaryColor,
                     ),
                     IconButton(
-                      icon: const Icon(Icons.download),
+                      icon: const Icon(Icons.file_download),
                       onPressed: _exportToFile,
                       tooltip: '导出到文件',
+                      color: primaryColor,
                     ),
+                    const SizedBox(width: 16),
                   ],
                 ),
           body: Column(
@@ -563,24 +623,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildItemCard(Item item, bool isSelected) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         color: cardColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
+            color: Colors.grey.withAlpha(30),
+            blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
         border: isSelected ? Border.all(color: primaryColor, width: 2) : null,
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         onTap: _isSelectionMode ? () => _toggleItemSelection(item.id) : null,
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -605,7 +665,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Text(
                       item.name,
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: 18,
                         fontWeight: FontWeight.w600,
                         color: isSelected
                             ? primaryColor
@@ -616,88 +676,31 @@ class _HomeScreenState extends State<HomeScreen> {
                   if (!_isSelectionMode)
                     Row(
                       children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: primaryColor.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: IconButton(
-                            icon: Icon(
-                              Icons.edit,
-                              size: 20,
-                              color: primaryColor,
-                            ),
-                            onPressed: () => _navigateToForm(item),
-                            padding: const EdgeInsets.all(8),
-                            constraints: const BoxConstraints(),
-                          ),
+                        IconButton(
+                          icon: Icon(Icons.edit, size: 20, color: primaryColor),
+                          onPressed: () => _navigateToForm(item),
+                          padding: const EdgeInsets.all(4),
+                          constraints: const BoxConstraints(),
                         ),
                         const SizedBox(width: 8),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.red.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
+                        IconButton(
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            size: 20,
+                            color: Colors.red,
                           ),
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              size: 20,
-                              color: Colors.red,
-                            ),
-                            onPressed: () => _deleteItem(item.id),
-                            padding: const EdgeInsets.all(8),
-                            constraints: const BoxConstraints(),
-                          ),
+                          onPressed: () => _deleteItem(item.id),
+                          padding: const EdgeInsets.all(4),
+                          constraints: const BoxConstraints(),
                         ),
                       ],
                     ),
                 ],
               ),
-              const SizedBox(height: 16),
-              _buildInfoRow('购买价格', item.formattedPrice),
-              _buildInfoRow('购买日期', item.formattedPurchaseDate),
-              _buildInfoRow('使用天数', '${item.daysUsed} 天'),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Divider(height: 1, color: Colors.grey[200]),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.calculate, size: 16, color: Colors.grey[500]),
-                      const SizedBox(width: 6),
-                      Text(
-                        '平均每日成本',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: primaryColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      item.formattedAveragePrice,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: primaryColor,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              const SizedBox(height: 12),
+              _buildInfoRow('购买价格:', item.formattedPrice),
+              _buildInfoRow('购买日期:', item.formattedPurchaseDate),
+              _buildInfoRow('使用天数:', '${item.daysUsed} 天'),
             ],
           ),
         ),
@@ -764,117 +767,113 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildSummaryCard() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(
-          colors: [
-            primaryColor.withValues(alpha: 0.15),
-            primaryColor.withValues(alpha: 0.08),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: primaryColor.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.monetization_on,
-                        size: 18,
-                        color: primaryColor.withValues(alpha: 0.8),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '总价值',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey[700],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '¥${totalValue.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: primaryColor,
-                      letterSpacing: -0.5,
-                    ),
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withAlpha(30),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
-            ),
-            Container(
-              width: 1.5,
-              height: 60,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.transparent,
-                    primaryColor.withValues(alpha: 0.3),
-                    Colors.transparent,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.attach_money, size: 20, color: primaryColor),
+                        const SizedBox(width: 6),
+                        Text(
+                          '总价值',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '¥${totalValue.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: warmGold,
+                      ),
+                    ),
                   ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
                 ),
               ),
             ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.trending_down,
-                        size: 18,
-                        color: primaryColor.withValues(alpha: 0.8),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '平均每日开销',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey[700],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '¥${averageDailyCost.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: primaryColor,
-                      letterSpacing: -0.5,
-                    ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withAlpha(30),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.trending_down,
+                          size: 20,
+                          color: primaryColor,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '平均每日开销',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(Icons.trending_up, size: 20, color: warmGold),
+                        const SizedBox(width: 6),
+                        Text(
+                          '¥${averageDailyCost.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: warmGold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -893,19 +892,12 @@ class _HomeScreenState extends State<HomeScreen> {
               fontWeight: FontWeight.w500,
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1A1A1A),
-              ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: warmGold,
             ),
           ),
         ],
