@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 import 'dart:io';
+import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:file_picker/file_picker.dart';
 import '../models/item.dart';
 import '../services/storage_service.dart';
@@ -169,11 +171,20 @@ class _HomeScreenState extends State<HomeScreen> {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['txt'],
+        withData: true, // Web平台需要这个
       );
       if (result == null || result.files.isEmpty) return;
 
-      final file = File(result.files.single.path!);
-      final content = await file.readAsString();
+      String content;
+      if (kIsWeb) {
+        // Web平台：使用bytes
+        content = utf8.decode(result.files.single.bytes!);
+      } else {
+        // 其他平台：使用path
+        final file = File(result.files.single.path!);
+        content = await file.readAsString();
+      }
+
       final lines = content.split('\n');
 
       int importedCount = 0;
@@ -212,9 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       if (mounted) {
-        scaffoldMessenger.showSnackBar(
-          const SnackBar(content: Text('导入失败，请检查文件格式')),
-        );
+        scaffoldMessenger.showSnackBar(SnackBar(content: Text('导入失败: $e')));
       }
     }
   }
@@ -236,7 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
       String content = '';
       for (final item in items) {
         content +=
-            '${item.name} | ${item.price} | ${item.formattedPurchaseDate} |\n';
+            '${item.name}|${item.price}|${item.purchaseDate.toIso8601String()}\n';
       }
 
       final result = await FilePicker.platform.saveFile(
@@ -244,21 +253,23 @@ class _HomeScreenState extends State<HomeScreen> {
         fileName: 'items_${DateTime.now().millisecondsSinceEpoch}.txt',
         type: FileType.custom,
         allowedExtensions: ['txt'],
+        bytes: utf8.encode(content), // Web平台使用bytes
       );
 
       if (result == null) return;
 
-      final file = File(result);
-      await file.writeAsString(content);
+      // 根据平台保存文件
+      if (!kIsWeb) {
+        final file = File(result);
+        await file.writeAsString(content);
+      }
 
       if (mounted) {
-        scaffoldMessenger.showSnackBar(
-          SnackBar(content: Text('导出成功，文件保存在: ${file.path}')),
-        );
+        scaffoldMessenger.showSnackBar(SnackBar(content: Text('导出成功')));
       }
     } catch (e) {
       if (mounted) {
-        scaffoldMessenger.showSnackBar(const SnackBar(content: Text('导出失败')));
+        scaffoldMessenger.showSnackBar(SnackBar(content: Text('导出失败: $e')));
       }
     }
   }
