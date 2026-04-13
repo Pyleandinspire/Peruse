@@ -381,13 +381,30 @@ class _HomeScreenState extends State<HomeScreen> {
                       tooltip: '批量删除',
                       color: primaryColor,
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.file_download),
-                      onPressed: _exportToFile,
-                      tooltip: '导出到文件',
-                      color: primaryColor,
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      child: ElevatedButton.icon(
+                        onPressed: _exportToFile,
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: primaryColor,
+                          backgroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          elevation: 0,
+                        ),
+                        icon: const Icon(Icons.upload_file, size: 20),
+                        label: const Text(
+                          '导出',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 8),
                   ],
                 ),
           body: Column(
