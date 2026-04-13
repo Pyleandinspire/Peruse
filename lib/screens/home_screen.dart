@@ -21,6 +21,10 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _showFloatingMenu = false;
   Set<String> _selectedItemIds = {};
 
+  static const primaryColor = Color(0xFF2A3F55);
+  static const warmGold = Color(0xFFCFAF68);
+  static const cardColor = Color(0xFFFFFFFF);
+
   double get totalValue {
     return _items.fold<double>(0, (sum, item) => sum + item.price);
   }
@@ -417,13 +421,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   vertical: 20,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  color: cardColor,
+                  borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.15),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 30,
-                      offset: const Offset(0, 10),
+                      offset: const Offset(0, 15),
                     ),
                   ],
                 ),
@@ -433,16 +437,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     Text(
                       '选择操作',
                       style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: primaryColor,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'CHOOSE OPERATION',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 13,
                         color: Colors.grey[500],
                         letterSpacing: 2,
                       ),
@@ -494,8 +498,6 @@ class _HomeScreenState extends State<HomeScreen> {
     VoidCallback onTap,
     double buttonSize,
   ) {
-    final primaryColor = Color(0xFF2C5F8C);
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final actualSize = min(buttonSize, constraints.maxWidth - 10);
@@ -513,7 +515,7 @@ class _HomeScreenState extends State<HomeScreen> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: Color(0xFFD4AF37).withValues(alpha: 0.5),
+                color: warmGold.withValues(alpha: 0.5),
                 width: 1.5,
               ),
             ),
@@ -564,7 +566,7 @@ class _HomeScreenState extends State<HomeScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: Colors.white,
+        color: cardColor,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -572,9 +574,7 @@ class _HomeScreenState extends State<HomeScreen> {
             offset: const Offset(0, 2),
           ),
         ],
-        border: isSelected
-            ? Border.all(color: Theme.of(context).primaryColor, width: 2)
-            : null,
+        border: isSelected ? Border.all(color: primaryColor, width: 2) : null,
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -598,6 +598,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         onChanged: (value) {
                           _toggleItemSelection(item.id);
                         },
+                        activeColor: primaryColor,
                       ),
                     ),
                   Expanded(
@@ -607,7 +608,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
                         color: isSelected
-                            ? Theme.of(context).primaryColor
+                            ? primaryColor
                             : const Color(0xFF1A1A1A),
                       ),
                     ),
@@ -617,16 +618,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Container(
                           decoration: BoxDecoration(
-                            color: Theme.of(
-                              context,
-                            ).primaryColor.withValues(alpha: 0.1),
+                            color: primaryColor.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
                           child: IconButton(
                             icon: Icon(
                               Icons.edit,
                               size: 20,
-                              color: Theme.of(context).primaryColor,
+                              color: primaryColor,
                             ),
                             onPressed: () => _navigateToForm(item),
                             padding: const EdgeInsets.all(8),
@@ -685,9 +684,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).primaryColor.withValues(alpha: 0.12),
+                      color: primaryColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -695,7 +692,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor,
+                        color: primaryColor,
                       ),
                     ),
                   ),
@@ -772,15 +769,15 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(16),
         gradient: LinearGradient(
           colors: [
-            Theme.of(context).primaryColor.withValues(alpha: 0.15),
-            Theme.of(context).primaryColor.withValues(alpha: 0.08),
+            primaryColor.withValues(alpha: 0.15),
+            primaryColor.withValues(alpha: 0.08),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+            color: primaryColor.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -799,9 +796,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Icon(
                         Icons.monetization_on,
                         size: 18,
-                        color: Theme.of(
-                          context,
-                        ).primaryColor.withValues(alpha: 0.8),
+                        color: primaryColor.withValues(alpha: 0.8),
                       ),
                       const SizedBox(width: 6),
                       Text(
@@ -820,7 +815,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: Theme.of(context).primaryColor,
+                      color: primaryColor,
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -834,7 +829,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 gradient: LinearGradient(
                   colors: [
                     Colors.transparent,
-                    Theme.of(context).primaryColor.withValues(alpha: 0.3),
+                    primaryColor.withValues(alpha: 0.3),
                     Colors.transparent,
                   ],
                   begin: Alignment.topCenter,
@@ -852,9 +847,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Icon(
                         Icons.trending_down,
                         size: 18,
-                        color: Theme.of(
-                          context,
-                        ).primaryColor.withValues(alpha: 0.8),
+                        color: primaryColor.withValues(alpha: 0.8),
                       ),
                       const SizedBox(width: 6),
                       Text(
@@ -873,7 +866,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: Theme.of(context).primaryColor,
+                      color: primaryColor,
                       letterSpacing: -0.5,
                     ),
                   ),

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/item.dart';
 
@@ -65,6 +66,7 @@ class StorageService {
       final jsonString = json.encode(jsonList);
       await _prefs!.setString(_itemsKey, jsonString);
     } catch (e) {
+      debugPrint('Error saving items: $e');
     }
   }
 
