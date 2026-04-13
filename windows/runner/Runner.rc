@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "longterm_app" "\0"
+            VALUE "FileDescription", "长物Peruse" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "longterm_app" "\0"
+            VALUE "InternalName", "长物Peruse" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "longterm_app.exe" "\0"
-            VALUE "ProductName", "longterm_app" "\0"
+            VALUE "OriginalFilename", "长物Peruse.exe" "\0"
+            VALUE "ProductName", "长物Peruse" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
