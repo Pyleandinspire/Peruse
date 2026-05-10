@@ -868,6 +868,7 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildInfoRow('购买价格:', item.formattedPrice),
               _buildInfoRow('购买日期:', item.formattedPurchaseDate),
               _buildInfoRow('使用天数:', '${item.daysUsed} 天'),
+              _buildInfoRow('平均价格:', '${item.formattedAveragePrice}/天'),
             ],
           ),
         ),
